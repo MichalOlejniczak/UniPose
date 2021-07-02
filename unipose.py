@@ -61,7 +61,10 @@ class Trainer(object):
             self.numClasses = 16
 
         self.train_loader, self.val_loader = getDataloader(self.dataset, self.train_dir,
-                                                           self.val_dir, self.sigma, self.stride, self.workers,
+                                                           self.val_dir,
+                                                           self.val_dir,  # should be test_dir in here
+                                                           self.sigma, self.stride,
+                                                           self.workers,
                                                            self.batch_size)
 
         model = unipose(self.dataset, num_classes=self.numClasses, backbone='resnet', output_stride=16, sync_bn=True,
@@ -195,7 +198,7 @@ class Trainer(object):
             self.bestPCK = mPCK
 
         print("Best AP = %.2f%%; PCK = %2.2f%%; PCKh = %2.2f%%" % (
-        self.isBest * 100, self.bestPCK * 100, self.bestPCKh * 100))
+            self.isBest * 100, self.bestPCK * 100, self.bestPCKh * 100))
 
     def test(self, epoch):
         self.model.eval()
