@@ -272,9 +272,9 @@ elif args.dataset == 'MPII':
     args.val_dir = '/PATH/TO/MPIII/VAL'
 
 trainer = Trainer(args)
-for epoch in range(starter_epoch, epochs):
-    trainer.training(epoch)
-    trainer.validation(epoch)
+# for epoch in range(starter_epoch, epochs):
+#     trainer.training(epoch)
+#     trainer.validation(epoch)
 
 # Uncomment for inference, demo, and samples for the trained model:
-# trainer.test(0)
+trainer.test(0)
