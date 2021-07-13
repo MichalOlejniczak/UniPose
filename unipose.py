@@ -1,4 +1,3 @@
-# -*-coding:UTF-8-*-
 import argparse
 import time
 import torch.optim
@@ -10,7 +9,7 @@ import cv2
 import math
 
 sys.path.append("..")
-from utils.utils import get_model_summary
+#from utils.utils import get_model_summary
 from utils.utils import adjust_learning_rate as adjust_learning_rate
 from utils.utils import save_checkpoint      as save_checkpoint
 from utils.utils import printAccuracies      as printAccuracies
@@ -60,12 +59,7 @@ class Trainer(object):
         elif self.dataset == "MPII":
             self.numClasses = 16
 
-        self.train_loader, self.val_loader = getDataloader(self.dataset, self.train_dir,
-                                                           self.val_dir,
-                                                           self.val_dir,  # should be test_dir in here
-                                                           self.sigma, self.stride,
-                                                           self.workers,
-                                                           self.batch_size)
+        self.train_loader, self.val_loader = None, None
 
         model = unipose(self.dataset, num_classes=self.numClasses, backbone='resnet', output_stride=16, sync_bn=True,
                         freeze_bn=False, stride=self.stride)
@@ -98,107 +92,107 @@ class Trainer(object):
         self.bestPCK = 0
         self.bestPCKh = 0
 
-        # Print model summary and metrics
-        dump_input = torch.rand(([1, 3, 368, 368]))
-        print(get_model_summary(self.model, dump_input))
-
-    def training(self, epoch):
-        train_loss = 0.0
-        self.model.train()
-        print("Epoch " + str(epoch) + ':')
-        tbar = tqdm(self.train_loader)
-
-        for i, (input, heatmap, centermap, img_path) in enumerate(tbar):
-            learning_rate = adjust_learning_rate(self.optimizer, self.iters, self.lr, policy='step',
-                                                 gamma=self.gamma, step_size=self.step_size)
-
-            input_var = input.cuda()
-            heatmap_var = heatmap.cuda()
-
-            self.optimizer.zero_grad()
-
-            heat = self.model(input_var)
-
-            loss_heat = self.criterion(heat, heatmap_var)
-
-            loss = loss_heat
-
-            train_loss += loss_heat.item()
-
-            loss.backward()
-            self.optimizer.step()
-
-            tbar.set_description('Train loss: %.6f' % (train_loss / ((i + 1) * self.batch_size)))
-
-            self.iters += 1
-
-            if i == 10000:
-                break
-
-    def validation(self, epoch):
-        self.model.eval()
-        tbar = tqdm(self.val_loader, desc='\r')
-        val_loss = 0.0
-
-        AP = np.zeros(self.numClasses + 1)
-        PCK = np.zeros(self.numClasses + 1)
-        PCKh = np.zeros(self.numClasses + 1)
-        count = np.zeros(self.numClasses + 1)
-
-        cnt = 0
-        for i, (input, heatmap, centermap, img_path) in enumerate(tbar):
-
-            cnt += 1
-
-            input_var = input.cuda()
-            heatmap_var = heatmap.cuda()
-            self.optimizer.zero_grad()
-
-            heat = self.model(input_var)
-            loss_heat = self.criterion(heat, heatmap_var)
-
-            loss = loss_heat
-
-            val_loss += loss_heat.item()
-
-            tbar.set_description('Val   loss: %.6f' % (val_loss / ((i + 1) * self.batch_size)))
-
-            acc, acc_PCK, acc_PCKh, cnt, pred, visible = evaluate.accuracy(heat.detach().cpu().numpy(),
-                                                                           heatmap_var.detach().cpu().numpy(), 0.2, 0.5,
-                                                                           self.dataset)
-
-            AP[0] = (AP[0] * i + acc[0]) / (i + 1)
-            PCK[0] = (PCK[0] * i + acc_PCK[0]) / (i + 1)
-            PCKh[0] = (PCKh[0] * i + acc_PCKh[0]) / (i + 1)
-
-            for j in range(1, self.numClasses + 1):
-                if visible[j] == 1:
-                    AP[j] = (AP[j] * count[j] + acc[j]) / (count[j] + 1)
-                    PCK[j] = (PCK[j] * count[j] + acc_PCK[j]) / (count[j] + 1)
-                    PCKh[j] = (PCKh[j] * count[j] + acc_PCKh[j]) / (count[j] + 1)
-                    count[j] += 1
-
-            mAP = AP[1:].sum() / (self.numClasses)
-            mPCK = PCK[1:].sum() / (self.numClasses)
-            mPCKh = PCKh[1:].sum() / (self.numClasses)
-
-        printAccuracies(mAP, AP, mPCKh, PCKh, mPCK, PCK, self.dataset)
-
-        PCKhAvg = PCKh.sum() / (self.numClasses + 1)
-        PCKAvg = PCK.sum() / (self.numClasses + 1)
-
-        if mAP > self.isBest:
-            self.isBest = mAP
-            save_checkpoint({'state_dict': self.model.state_dict()}, self.isBest, self.args.model_name)
-            print("Model saved to " + self.args.model_name)
-
-        if mPCKh > self.bestPCKh:
-            self.bestPCKh = mPCKh
-        if mPCK > self.bestPCK:
-            self.bestPCK = mPCK
-
-        print("Best AP = %.2f%%; PCK = %2.2f%%; PCKh = %2.2f%%" % (
-            self.isBest * 100, self.bestPCK * 100, self.bestPCKh * 100))
+    #     # Print model summary and metrics
+    #     dump_input = torch.rand(([1, 3, 368, 368]))
+    #     #print(get_model_summary(self.model, dump_input))
+    #
+    # def training(self, epoch):
+    #     train_loss = 0.0
+    #     self.model.train()
+    #     print("Epoch " + str(epoch) + ':')
+    #     tbar = tqdm(self.train_loader)
+    #
+    #     for i, (input, heatmap, centermap, img_path) in enumerate(tbar):
+    #         learning_rate = adjust_learning_rate(self.optimizer, self.iters, self.lr, policy='step',
+    #                                              gamma=self.gamma, step_size=self.step_size)
+    #
+    #         input_var = input.cuda()
+    #         heatmap_var = heatmap.cuda()
+    #
+    #         self.optimizer.zero_grad()
+    #
+    #         heat = self.model(input_var)
+    #
+    #         loss_heat = self.criterion(heat, heatmap_var)
+    #
+    #         loss = loss_heat
+    #
+    #         train_loss += loss_heat.item()
+    #
+    #         loss.backward()
+    #         self.optimizer.step()
+    #
+    #         tbar.set_description('Train loss: %.6f' % (train_loss / ((i + 1) * self.batch_size)))
+    #
+    #         self.iters += 1
+    #
+    #         if i == 10000:
+    #             break
+    #
+    # def validation(self, epoch):
+    #     self.model.eval()
+    #     tbar = tqdm(self.val_loader, desc='\r')
+    #     val_loss = 0.0
+    #
+    #     AP = np.zeros(self.numClasses + 1)
+    #     PCK = np.zeros(self.numClasses + 1)
+    #     PCKh = np.zeros(self.numClasses + 1)
+    #     count = np.zeros(self.numClasses + 1)
+    #
+    #     cnt = 0
+    #     for i, (input, heatmap, centermap, img_path) in enumerate(tbar):
+    #
+    #         cnt += 1
+    #
+    #         input_var = input.cuda()
+    #         heatmap_var = heatmap.cuda()
+    #         self.optimizer.zero_grad()
+    #
+    #         heat = self.model(input_var)
+    #         loss_heat = self.criterion(heat, heatmap_var)
+    #
+    #         loss = loss_heat
+    #
+    #         val_loss += loss_heat.item()
+    #
+    #         tbar.set_description('Val   loss: %.6f' % (val_loss / ((i + 1) * self.batch_size)))
+    #
+    #         acc, acc_PCK, acc_PCKh, cnt, pred, visible = evaluate.accuracy(heat.detach().cpu().numpy(),
+    #                                                                        heatmap_var.detach().cpu().numpy(), 0.2, 0.5,
+    #                                                                        self.dataset)
+    #
+    #         AP[0] = (AP[0] * i + acc[0]) / (i + 1)
+    #         PCK[0] = (PCK[0] * i + acc_PCK[0]) / (i + 1)
+    #         PCKh[0] = (PCKh[0] * i + acc_PCKh[0]) / (i + 1)
+    #
+    #         for j in range(1, self.numClasses + 1):
+    #             if visible[j] == 1:
+    #                 AP[j] = (AP[j] * count[j] + acc[j]) / (count[j] + 1)
+    #                 PCK[j] = (PCK[j] * count[j] + acc_PCK[j]) / (count[j] + 1)
+    #                 PCKh[j] = (PCKh[j] * count[j] + acc_PCKh[j]) / (count[j] + 1)
+    #                 count[j] += 1
+    #
+    #         mAP = AP[1:].sum() / (self.numClasses)
+    #         mPCK = PCK[1:].sum() / (self.numClasses)
+    #         mPCKh = PCKh[1:].sum() / (self.numClasses)
+    #
+    #     printAccuracies(mAP, AP, mPCKh, PCKh, mPCK, PCK, self.dataset)
+    #
+    #     PCKhAvg = PCKh.sum() / (self.numClasses + 1)
+    #     PCKAvg = PCK.sum() / (self.numClasses + 1)
+    #
+    #     if mAP > self.isBest:
+    #         self.isBest = mAP
+    #         save_checkpoint({'state_dict': self.model.state_dict()}, self.isBest, self.args.model_name)
+    #         print("Model saved to " + self.args.model_name)
+    #
+    #     if mPCKh > self.bestPCKh:
+    #         self.bestPCKh = mPCKh
+    #     if mPCK > self.bestPCK:
+    #         self.bestPCK = mPCK
+    #
+    #     print("Best AP = %.2f%%; PCK = %2.2f%%; PCKh = %2.2f%%" % (
+    #         self.isBest * 100, self.bestPCK * 100, self.bestPCKh * 100))
 
     def test(self, epoch):
         self.model.eval()
@@ -206,7 +200,7 @@ class Trainer(object):
 
         for idx in range(1):
             print(idx, "/", 2000)
-            img_path = '/PATH/TO/TEST/IMAGE'
+            img_path = '/home/paperspace/extra/images/099980514.jpg'
 
             center = [184, 184]
 
@@ -229,7 +223,8 @@ class Trainer(object):
             heat = F.interpolate(heat, size=input_var.size()[2:], mode='bilinear', align_corners=True)
 
             kpts = get_kpts(heat, img_h=368.0, img_w=368.0)
-            draw_paint(img_path, kpts, idx, epoch, self.model_arch, self.dataset)
+
+            draw_paint(img, kpts, idx, epoch, self.model_arch, self.dataset)
 
             heat = heat.detach().cpu().numpy()
 
@@ -241,7 +236,8 @@ class Trainer(object):
                         if heat[i, j, k] < 0:
                             heat[i, j, k] = 0
 
-            im = cv2.resize(cv2.imread(img_path), (368, 368))
+            im = cv2.imread(img_path)
+            im = cv2.resize(im, (368, 368))
 
             heatmap = []
             for i in range(self.numClasses + 1):
@@ -251,10 +247,10 @@ class Trainer(object):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--pretrained', default=None, type=str, dest='pretrained')
-parser.add_argument('--dataset', type=str, dest='dataset', default='LSP')
-parser.add_argument('--train_dir', default='/PATH/TO/TRAIN', type=str, dest='train_dir')
-parser.add_argument('--val_dir', type=str, dest='val_dir', default='/PATH/TO/LSP/VAL')
+parser.add_argument('--pretrained', default='../UniPose_MPII.tar', type=str, dest='pretrained')
+parser.add_argument('--dataset', type=str, dest='dataset', default='MPII')
+parser.add_argument('--train_dir', default='../images', type=str, dest='train_dir')
+parser.add_argument('--val_dir', type=str, dest='val_dir', default='../images')
 parser.add_argument('--model_name', default=None, type=str)
 parser.add_argument('--model_arch', default='unipose', type=str)
 
@@ -268,8 +264,8 @@ if args.dataset == 'LSP':
     args.val_dir = '/PATH/TO/LSP/VAL'
     args.pretrained = '/PATH/TO/WEIGHTS'
 elif args.dataset == 'MPII':
-    args.train_dir = '/PATH/TO/MPIII/TRAIN'
-    args.val_dir = '/PATH/TO/MPIII/VAL'
+    args.train_dir = '../images'
+    args.val_dir = '../images'
 
 trainer = Trainer(args)
 # for epoch in range(starter_epoch, epochs):
