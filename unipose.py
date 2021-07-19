@@ -206,7 +206,7 @@ class Trainer(object):
 
         for idx in range(1):
             print(idx, "/", 2000)
-            img_path = '/home/paperspace/extra/images/099980514.jpg'
+            img_path = '/home/paperspace/extra/lsp/images/im0889.jpg'
 
             center = [184, 184]
 
@@ -253,10 +253,10 @@ class Trainer(object):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--pretrained', default='../UniPose_MPII.tar', type=str, dest='pretrained')
+parser.add_argument('--pretrained', default='../UniPose_LSP.tar', type=str, dest='pretrained')
 parser.add_argument('--dataset', type=str, dest='dataset', default='LSP')
-parser.add_argument('--train_dir', default='../images', type=str, dest='train_dir')
-parser.add_argument('--val_dir', type=str, dest='val_dir', default='../images')
+parser.add_argument('--train_dir', default='../lsp/images', type=str, dest='train_dir')
+parser.add_argument('--val_dir', type=str, dest='val_dir', default='../lsp/images')
 parser.add_argument('--model_name', default=None, type=str)
 parser.add_argument('--model_arch', default='unipose', type=str)
 
@@ -266,8 +266,8 @@ epochs = 100
 args = parser.parse_args()
 
 if args.dataset == 'LSP':
-    args.train_dir = '../images'
-    args.val_dir = '../images'
+    args.train_dir = '../lsp/images'
+    args.val_dir = '../lsp/images'
 
 
 trainer = Trainer(args)
