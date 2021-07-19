@@ -37,48 +37,44 @@ from PIL import Image
 
 class Trainer(object):
     def __init__(self, args):
-        self.args = args
-        self.train_dir = args.train_dir
-        self.val_dir = args.val_dir
-        self.model_arch = args.model_arch
-        self.dataset = args.dataset
+        self.args         = args
+        self.train_dir    = args.train_dir
+        self.val_dir      = args.val_dir
+        self.model_arch   = args.model_arch
+        self.dataset      = args.dataset
 
-        self.workers = 1
+
+        self.workers      = 1
         self.weight_decay = 0.0005
-        self.momentum = 0.9
-        self.batch_size = 8
-        self.lr = 0.0001
-        self.gamma = 0.333
-        self.step_size = 13275
-        self.sigma = 3
-        self.stride = 8
+        self.momentum     = 0.9
+        self.batch_size   = 8
+        self.lr           = 0.0001
+        self.gamma        = 0.333
+        self.step_size    = 13275
+        self.sigma        = 3
+        self.stride       = 8
 
-        cudnn.benchmark = True
+        cudnn.benchmark   = True
 
-        if self.dataset == "LSP":
-            self.numClasses = 14
+        if self.dataset   ==  "LSP":
+            self.numClasses  = 14
         elif self.dataset == "MPII":
-            self.numClasses = 16
+            self.numClasses  = 16
 
-        self.train_loader, self.val_loader = getDataloader(self.dataset, self.train_dir,
-                                                           self.val_dir,
-                                                           self.val_dir,  # should be test_dir in here
-                                                           self.sigma, self.stride,
-                                                           self.workers,
-                                                           self.batch_size)
+        self.train_loader, self.val_loader = getDataloader(self.dataset, self.train_dir,\
+            self.val_dir, self.sigma, self.stride, self.workers, self.batch_size)
 
-        model = unipose(self.dataset, num_classes=self.numClasses, backbone='resnet', output_stride=16, sync_bn=True,
-                        freeze_bn=False, stride=self.stride)
+        model = unipose(self.dataset, num_classes=self.numClasses,backbone='resnet',output_stride=16,sync_bn=True,freeze_bn=False, stride=self.stride)
 
-        self.model = model.cuda()
+        self.model       = model.cuda()
 
-        self.criterion = nn.MSELoss().cuda()
+        self.criterion   = nn.MSELoss().cuda()
 
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
+        self.optimizer   = torch.optim.Adam(self.model.parameters(), lr=self.lr)
 
-        self.best_model = 12345678.9
+        self.best_model  = 12345678.9
 
-        self.iters = 0
+        self.iters       = 0
 
         if self.args.pretrained is not None:
             checkpoint = torch.load(self.args.pretrained)
@@ -87,7 +83,7 @@ class Trainer(object):
             state_dict = self.model.state_dict()
             model_dict = {}
 
-            for k, v in p.items():
+            for k,v in p.items():
                 if k in state_dict:
                     model_dict[k] = v
 
@@ -95,7 +91,7 @@ class Trainer(object):
             self.model.load_state_dict(state_dict)
 
         self.isBest = 0
-        self.bestPCK = 0
+        self.bestPCK  = 0
         self.bestPCKh = 0
 
     #     # Print model summary and metrics
@@ -200,7 +196,7 @@ class Trainer(object):
     #     print("Best AP = %.2f%%; PCK = %2.2f%%; PCKh = %2.2f%%" % (
     #         self.isBest * 100, self.bestPCK * 100, self.bestPCKh * 100))
 
-    def test(self, epoch):
+    def test(self,epoch):
         self.model.eval()
         print("Testing")
 
@@ -208,49 +204,48 @@ class Trainer(object):
             print(idx, "/", 2000)
             img_path = '/home/paperspace/extra/lsp/images/im0889.jpg'
 
-            center = [184, 184]
+            center   = [184, 184]
 
-            img = np.array(cv2.resize(cv2.imread(img_path), (368, 368)), dtype=np.float32)
-            img = img.transpose(2, 0, 1)
-            img = torch.from_numpy(img)
+            img  = np.array(cv2.resize(cv2.imread(img_path),(368,368)), dtype=np.float32)
+            img  = img.transpose(2, 0, 1)
+            img  = torch.from_numpy(img)
             mean = [128.0, 128.0, 128.0]
-            std = [256.0, 256.0, 256.0]
+            std  = [256.0, 256.0, 256.0]
             for t, m, s in zip(img, mean, std):
                 t.sub_(m).div_(s)
 
-            img = torch.unsqueeze(img, 0)
+            img       = torch.unsqueeze(img, 0)
 
             self.model.eval()
 
-            input_var = img.cuda()
+            input_var   = img.cuda()
 
             heat = self.model(input_var)
 
             heat = F.interpolate(heat, size=input_var.size()[2:], mode='bilinear', align_corners=True)
 
             kpts = get_kpts(heat, img_h=368.0, img_w=368.0)
-
-            draw_paint(img, kpts, idx, epoch, self.model_arch, self.dataset)
+            draw_paint(img_path, kpts, idx, epoch, self.model_arch, self.dataset)
 
             heat = heat.detach().cpu().numpy()
 
-            heat = heat[0].transpose(1, 2, 0)
+            heat = heat[0].transpose(1,2,0)
+
 
             for i in range(heat.shape[0]):
                 for j in range(heat.shape[1]):
                     for k in range(heat.shape[2]):
-                        if heat[i, j, k] < 0:
-                            heat[i, j, k] = 0
+                        if heat[i,j,k] < 0:
+                            heat[i,j,k] = 0
 
-            im = cv2.imread(img_path)
-            im = cv2.resize(im, (368, 368))
+
+            im       = cv2.resize(cv2.imread(img_path),(368,368))
 
             heatmap = []
-            for i in range(self.numClasses + 1):
-                heatmap = cv2.applyColorMap(np.uint8(255 * heat[:, :, i]), cv2.COLORMAP_JET)
-                im_heat = cv2.addWeighted(im, 0.6, heatmap, 0.4, 0)
-                cv2.imwrite('samples/heat/unipose' + str(i) + '.png', im_heat)
-
+            for i in range(self.numClasses+1):
+                heatmap = cv2.applyColorMap(np.uint8(255*heat[:,:,i]), cv2.COLORMAP_JET)
+                im_heat  = cv2.addWeighted(im, 0.6, heatmap, 0.4, 0)
+                cv2.imwrite('samples/heat/unipose'+str(i)+'.png', im_heat)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--pretrained', default='../UniPose_LSP.tar', type=str, dest='pretrained')
